@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Summize",
+  "version": "1.0.0",
+  "description": "A chrome extension that summarizes youtube videos with chatgpt",
+  "host_permissions": ["https://chat.openai.com/chat/*", "https://chat.openai.com/chat"],
+  "action" : {
+    "default_popup": "popup/popup.html",
+    "default_title": "Summize"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://chat.openai.com/chat/*", "https://chat.openai.com/chat", "https://chat.openai.com/chat?run", "https://www.youtube.com/*"],
+      "js": ["scripts/content-script.js"],
+      "all_frames": true
+    }
+  ],
+  "background": { 
+    "service_worker": "background.js"
+  },
+  "permissions" : ["tabs", "storage", "activeTab"],
+  "commands": {
+    "Ctrl+M": {
+        "suggested_key": {
+            "default": "Ctrl+M",
+            "mac": "Command+M"
+        },
+        "description": "Ctrl+M."
+    }
+  },
+  "web_accessible_resources": [{
+    "resources": ["scripts/getYt.js", "popup/frame.html"],
+    "matches": ["https://www.youtube.com/*"]
+    
+  }
+]
+  
+
+}
