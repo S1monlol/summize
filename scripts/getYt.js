@@ -11,10 +11,6 @@ subs.then(response => {
         console.log(subsText);
         
         window.postMessage({ type: 'FROM_INJECTED_SCRIPT', payload: subsText }, '*');
-
-        
-
-
     
     });
 
