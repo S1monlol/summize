@@ -34,7 +34,8 @@
     "storage",
     "activeTab",
     "webRequest",
-    "cookies"
+    "cookies",
+    "webNavigation"
   ],
   "commands": {
     "Ctrl+M": {
