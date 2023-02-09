@@ -67,6 +67,11 @@ function main() {
             });
 
             const h2 = document.createElement("h2");
+            // get id of the video 
+            let videoId = window.location.href.split("v=")[1];
+
+            h2.id = videoId
+
 
             // add the h2 to the same div as document.querySelector("#title > h1")
             // document.querySelector("#title > h1").parentNode.appendChild(h2);
@@ -86,9 +91,11 @@ function main() {
             chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 console.log("Got message")
                 console.log(request);
-                
+
                 if (request.subject == "part") {
-                    h2.innerText = request.part;
+                    if (request.url.split("v=")[1] == videoId) {
+                        h2.innerText = request.part;
+                    }
                 } else if (request.subject == "login") {
                     // change h2 to Please login and pass Cloudflare check at chat.openai.com , making the link clickable
                     h2.innerHTML = "Please login and pass Cloudflare check at <a target=\"_blank\" href='https://chat.openai.com/chat'>chat.openai.com</a";
@@ -101,7 +108,6 @@ function main() {
                             transcript: subs
                         });
                     }, 5000);
-
                 }
 
             });

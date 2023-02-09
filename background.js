@@ -25,8 +25,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     chrome.cookies.getAll({ url: "https://chat.openai.com/chat" }, (cookies) => {
 
         var tabId;
+        var tabUrl
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             tabId = tabs[0].id;
+            tabUrl = tabs[0].url;
         });
 
         console.log("cookies");
@@ -71,11 +73,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
                 // remove newlines
                 subs = subs.replaceAll("\n", " ")
-                subs = subs.replaceAll(" ", "")
 
                 console.log(subs)
 
-                subs = "This is the transcript of a video, summarize it. All of the spaces are removed, try to parse each word \n " + subs
+                subs = "This is the transcript of a video, summarize it. Try to keep it as short as possible \n " + subs
 
 
                 console.log(`Session Token : ${sessionToken}`)
@@ -128,83 +129,73 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         var reader = response.body.getReader();
                     }
 
-                    // old tab url
-                    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-                        var oldcurrentTab = tabs[0];
-                        var oldcurrentTabUrl = oldcurrentTab.url;
-                        console.log(oldcurrentTabUrl);
+                    const readStream = async () => {
 
+                        console.log("test")
+                        var done2 = false;
 
+                        try {
+                            while (!done2) {
 
-                        (async function () {
-                            var done2 = false;
+                                console.log("test2")
 
-                            try {
-                                while (!done2) {
-                                    const { value, done } = await reader.read();
+                                const { value, done } = await reader.read();
 
-                                    let data = new TextDecoder("utf-8").decode(value)
+                                let data = new TextDecoder("utf-8").decode(value)
 
-                                    // get current tab url 
-                                    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-                                        var currentTab = tabs[0];
-                                        var currentTabUrl = currentTab.url;
-                                        console.log(currentTabUrl);
+                                console.log(data)
 
-                                        console.log(oldcurrentTabUrl)
+                                if (!data.includes("data: [DONE]")) {
 
-                                        if (!data.includes("data: [DONE]") && currentTabUrl == oldcurrentTabUrl) {
+                                    let parts = data.split("data: ")
+                                    parts = parts[1]
+                                    try {
+                                        parts = JSON.parse(parts).message.content.parts[0]
+                                        console.log(parts)
 
-                                            let parts = data.split("data: ")
-                                            parts = parts[1]
-                                            try {
-                                                parts = JSON.parse(parts).message.content.parts[0]
-                                                console.log(parts)
+                                        // send message to content script with subject "part"
+                                        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                                            chrome.tabs.sendMessage(tabId, { subject: "part", part: parts, url: tabUrl });
+                                        });
 
-                                                // send message to content script with subject "part"
-                                                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                                                    chrome.tabs.sendMessage(tabId, { subject: "part", part: parts });
-                                                });
+                                    } catch (e) {
+                                        console.log("error")
+                                        console.log(e)
+                                    }
+                                } else {
+                                    console.log("done")
+                                    done2 = true;
 
-                                            } catch (e) {
-                                                console.log("error")
-                                                console.log(e)
-                                            }
-                                        } else {
-                                            console.log("done")
-                                            done2 = true;
-
-                                        }
-
-
-                                    });
                                 }
-                            } catch (e) {
-                                console.log("error")
-                                console.log(e)
+
+
+
                             }
+                        } catch (e) {
+                            console.log("error")
+                            console.log(e)
+                            done2 = true;
+                        }
 
-                            return
-
-
-                        });
-
-                        return 
-
-
-                    });
+                        return
 
 
-                })
+                    };
+
+                    readStream();
+
+                    return
 
 
-            });
+                });
+
+
+            })
+
+
         });
-
-
-
-
     });
+
 });
 
 
