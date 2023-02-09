@@ -1,5 +1,7 @@
 # Summize - A YouTube Video Summarizer
 
+ ![example](https://user-images.githubusercontent.com/47905276/217866101-15722291-994f-4a73-be7f-4dc6e13f92e7.png)
+
 Summize is a browser extension that summarizes YouTube videos using OpenAI's GPT-3 language model. With Summize, you can quickly get a summary of a video, saving you time and making it easier to understand. 
 
 ## Features
