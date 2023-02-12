@@ -1,3 +1,4 @@
+var done2 = true; 
 chrome.commands.onCommand.addListener((shortcut) => {
     console.log('lets reload');
     console.log(shortcut);
@@ -115,9 +116,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     if (response.status != 200) {
                         console.log("there was an error")
                         if (response.status == 429) {
-                            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                                chrome.tabs.sendMessage(tabId, { subject: "429" });
-                            });
+                            // chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                            //     chrome.tabs.sendMessage(tabId, { subject: "429" });
+                            // });
+                            while(!done2){
+                                console.log("waiting")
+                                // sleep 1
+                                new Promise(r => setTimeout(r, 1000));
+
+                            }
                         }
 
                         return;
@@ -132,7 +139,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     const readStream = async () => {
 
                         console.log("test")
-                        var done2 = false;
+                        done2 = false;
 
                         try {
                             while (!done2) {
