@@ -1,0 +1,62 @@
+{
+  "manifest_version": 3,
+  "name": "TestGPT",
+  "version": "1.0.0",
+  "description": "A chrome extension that summarizes youtube videos with chatgpt",
+  "host_permissions": [
+    "https://chat.openai.com/chat/*",
+    "https://chat.openai.com/chat"
+  ],
+  "action": {
+    "default_title": "Summize"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chat.openai.com/chat/*",
+        "https://chat.openai.com/chat",
+        "https://chat.openai.com/chat?run",
+        "https://www.youtube.com/*",
+        "https://example.com/"
+      ],
+      "js": [
+        "scripts/content-script.js"
+      ],
+      "all_frames": true
+    }
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "tabs",
+    "storage",
+    "activeTab",
+    "webRequest",
+    "cookies",
+    "webNavigation"
+  ],
+  "commands": {
+    "Ctrl+M": {
+      "suggested_key": {
+        "default": "Ctrl+M",
+        "mac": "Command+M"
+      },
+      "description": "Ctrl+M."
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "scripts/getYt.js",
+        "scripts/getSession.js",
+        "popup/frame.html",
+        "scripts/eventsource-polyfill.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}
