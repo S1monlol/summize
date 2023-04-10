@@ -1,7 +1,11 @@
 console.log("getting subs");
-console.log(ytInitialPlayerResponse)
+console.log(ytInitialPlayerResponse);
 
-let subsUrl 
+// define subsUrl if it doesnt exist
+if (typeof subsUrl === 'undefined') {
+    var subsUrl = "";
+}
+
 
 subsUrl = ytInitialPlayerResponse.captions.playerCaptionsTracklistRenderer.captionTracks[0].baseUrl;
 

@@ -35,15 +35,41 @@ async function getToken() {
 let targetTabId; // The ID of the tab where the content script is running
 
 
-async function handleStreamedResponse(token, question, videoId) {
+async function handleStreamedResponse(token, question, videoId, parts) {
     // Make a request to the server that returns a streamed response
     const uuid1 = generateUUIDv4();
 
     console.log("videoId: " + videoId)
 
     console.log("question: " + question)
+    let subs
+    let questionParts
 
-    let subs = "this is a youtube video's transcript. Short summary (dont mention that you're reading a transcript): " + question
+    // if the question is more than 15k characters, then we need to split it into multiple requests
+
+
+    questionParts = question.match(/.{1,15000}/g);
+    console.log(questionParts)
+    for (let i = parts.length; i < questionParts.length; i++) {
+        if (i == 0) {
+            console.log("first part")
+
+            if (question.length > 15000) {
+                subs = `This is the first part of the transcript. Keep it to a super short summary, no more than 3 sentences (dont mention that you're reading a transcript): ` + questionParts[i]
+            } else {
+                subs = "this is a youtube video's transcript. Short summary (dont mention that you're reading a transcript): " + questionParts[i]
+            }
+            break
+        } else {
+            subs = `Previous summary: ${parts}. This is the ${i + 1} part of the transcript. Rewritten, continued summary (dont mention that you're reading a transcript): ` + questionParts[i]
+            break
+        }
+    }
+
+
+    console.log("subs ", subs)
+
+    // let subs = "this is a youtube video's transcript. Short summary (dont mention that you're reading a transcript): " + question
     let body = { "action": "next", "messages": [{ "id": "73954541-ff9e-4785-85e4-d45527ccca73", "author": { "role": "user" }, "content": { "content_type": "text", "parts": [subs] } }], "parent_message_id": uuid1, "model": "text-davinci-002-render-sha", "timezone_offset_min": 240 }
     // let body = { "action": "next", "messages": [{ "id": "171c9ee7-ce8d-4056-acf4-75974ee8c8fe", "role": "user", "content": { "content_type": "text", "parts": [subs] } }], "parent_message_id": "425da9a9-246e-433e-8d9a-b435da2e5e14", "model": "text-davinci-002-render" }
     body = JSON.stringify(body);
@@ -98,6 +124,14 @@ async function handleStreamedResponse(token, question, videoId) {
             console.log(chunks)
 
             if (chunks[0].includes("[DONE]")) {
+
+                if(parts.length != questionParts.length){
+                    // add the last final text to the parts array
+                    parts.push(chunks[1])
+                    console.log("parts: ", parts)
+                    return handleStreamedResponse(token, question, videoId, parts)
+                }
+
                 console.log("done")
                 await deleteConvo(token)
                 return;
@@ -134,10 +168,6 @@ async function handleStreamedResponse(token, question, videoId) {
                     chrome.tabs.sendMessage(targetTabId, { action: 'streamed_text_' + videoId, text: finalText });
                 }
             });
-
-
-
-
             // Continue reading the next chunk
             return readChunk();
         } catch (error) {
@@ -181,28 +211,28 @@ async function deleteConvo(token) {
 
     console.log(id)
 
-    let deleteResponse = await fetch(`https://chat.openai.com/backend-api/conversation/${id}`, {
-        "headers": {
-            "accept": "text/event-stream",
-            "accept-language": "en-US,en;q=0.9",
-            "authorization": `Bearer ${token}`,
-            "content-type": "application/json",
-            "sec-ch-ua": "\"Not_A Brand\";v=\"99\", \"Google Chrome\";v=\"109\", \"Chromium\";v=\"109\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"macOS\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-origin",
-            "x-openai-assistant-app-id": "",
-            "origin": "https://chat.openai.com"
-        },
-        "method": "PATCH",
-        "body": `{"is_visible":false}`
-    })
+    // let deleteResponse = await fetch(`https://chat.openai.com/backend-api/conversation/${id}`, {
+    //     "headers": {
+    //         "accept": "text/event-stream",
+    //         "accept-language": "en-US,en;q=0.9",
+    //         "authorization": `Bearer ${token}`,
+    //         "content-type": "application/json",
+    //         "sec-ch-ua": "\"Not_A Brand\";v=\"99\", \"Google Chrome\";v=\"109\", \"Chromium\";v=\"109\"",
+    //         "sec-ch-ua-mobile": "?0",
+    //         "sec-ch-ua-platform": "\"macOS\"",
+    //         "sec-fetch-dest": "empty",
+    //         "sec-fetch-mode": "cors",
+    //         "sec-fetch-site": "same-origin",
+    //         "x-openai-assistant-app-id": "",
+    //         "origin": "https://chat.openai.com"
+    //     },
+    //     "method": "PATCH",
+    //     "body": `{"is_visible":false}`
+    // })
 
-    let deleteBody = await deleteResponse.json()
+    // let deleteBody = await deleteResponse.json()
 
-    console.log(deleteResponse, deleteBody)
+    // console.log(deleteResponse, deleteBody)
 }
 
 // Listen for messages from content script
@@ -210,7 +240,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.message === 'getAccessToken') {
         getToken().then(accessToken => {
             targetTabId = sender.tab.id
-            handleStreamedResponse(accessToken, request.subs, request.videoId)
+            handleStreamedResponse(accessToken, request.subs, request.videoId, [])
             sendResponse({ accessToken: accessToken });
         });
         // Indicate that the response will be sent asynchronously
@@ -224,6 +254,12 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
     if (changeInfo.url && changeInfo.url.includes('youtube.com/watch')) {
         // send message to content script to start the stream
         console.log("New Video")
+        chrome.tabs.sendMessage(tabId, { action: 'start_stream' });
+    }
+    // otherwise detect if the page is refreshed
+    else if (changeInfo.status === 'complete') {
+        // send message to content script to start the stream
+        console.log("Page Refreshed")
         chrome.tabs.sendMessage(tabId, { action: 'start_stream' });
     }
 });
