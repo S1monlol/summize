@@ -23,6 +23,3 @@ To install Summize, follow these steps:
 ## Usage
 
 Once the extension is installed, you can use it by simply visiting a YouTube video and it will summarize it. 
-
-## License
-The Summize browser extension is licensed under the MIT License.
